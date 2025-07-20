@@ -44,6 +44,26 @@ def add_user_to_reminders(sender_id):
         return True
     return False
 
+def remove_user_from_reminders(sender_id):
+    """Remove a user from the streak reminder list"""
+    users = load_opted_in_users()
+    if sender_id in users:
+        users.remove(sender_id)
+        save_opted_in_users(users)
+        print(f"Removed user {sender_id} from streak reminders")
+        return True
+    return False
+
+def get_help_message():
+    """Get the help message with available commands"""
+    return """Available Commands:
+
+• "remind streak" - Start receiving daily streak reminders at 8 PM
+• "stop" - Stop receiving streak reminders
+• "help" - Show this help message
+
+Need help? Just type "help" anytime!"""
+
 @app.route("/", methods=["GET"])
 def verify():
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.verify_token") == VERIFY_TOKEN:
@@ -75,6 +95,24 @@ def webhook():
                                 send_message(sender_id, "✅ You're already signed up for streak reminders! You'll receive your daily reminder at 8 PM.")
                             
                             print(f"Streak reminder activated for user: {sender_id}")
+                        
+                        # Check for "stop" command
+                        elif "stop" in message_text:
+                            # Remove user from reminder list
+                            was_removed = remove_user_from_reminders(sender_id)
+                            
+                            if was_removed:
+                                send_message(sender_id, "❌ Streak reminders stopped! You won't receive any more notifications.")
+                            else:
+                                send_message(sender_id, "❌ You weren't signed up for streak reminders.")
+                            
+                            print(f"Streak reminder stopped for user: {sender_id}")
+                        
+                        # Check for "help" command
+                        elif "help" in message_text:
+                            help_message = get_help_message()
+                            send_message(sender_id, help_message)
+                            print(f"Help message sent to user: {sender_id}")
     
     return Response("ok", status=200)
 
